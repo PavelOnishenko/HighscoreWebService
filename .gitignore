@@ -140,3 +140,5 @@ vite.config.ts.timestamp-*
 
 # Database file
 data.db
+data.db-shm
+data.db-wal
