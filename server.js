@@ -21,6 +21,13 @@ const selectTop = db.prepare(
 
 app.use(express.json());
 
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  next();
+});
+
 function isValidName(name) {
   return typeof name === 'string' && name.trim().length >= 1 && name.trim().length <= 20;
 }
