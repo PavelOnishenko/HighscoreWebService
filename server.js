@@ -2,7 +2,7 @@ import express from 'express';
 import Database from 'better-sqlite3';
 
 const app = express();
-const db = new Database('data.db');
+const db = new Database('/var/data/data.db');
 
 db.pragma('journal_mode = WAL');
 db.prepare(`
