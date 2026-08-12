@@ -1,9 +1,7 @@
 export const maximumRequestBytes = 8 * 1024;
-export const maximumContextBytes = 1024;
 export const maximumPropertiesBytes = 4 * 1024;
 
-const topLevelFields = new Set(['eventName', 'occurredAt', 'sessionId', 'runId', 'gameVersion', 'platform', 'context', 'properties']);
-const contextFields = new Set(['deviceClass', 'language']);
+const topLevelFields = new Set(['eventName', 'occurredAt', 'sessionId', 'runId', 'gameVersion', 'platform', 'deviceClass', 'language', 'properties']);
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const versionPattern = /^[A-Za-z0-9][A-Za-z0-9._+-]{0,31}$/;
 const languagePattern = /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8}){0,2}$/;
@@ -42,13 +40,11 @@ function parseUtcTimestamp(value, now, eventName) {
   return occurredAt;
 }
 
-function validateContext(context, eventName) {
-  if (!isObject(context) || serializedBytes(context) > maximumContextBytes || Object.keys(context).some(field => !contextFields.has(field)))
-    fail(400, 'INVALID_REQUEST', 'Request fields are invalid.', 'invalid_context', eventName);
-  if (context.deviceClass !== undefined && !['desktop', 'mobile', 'tablet'].includes(context.deviceClass))
-    fail(400, 'INVALID_REQUEST', 'Request fields are invalid.', 'invalid_context', eventName);
-  if (context.language !== undefined && (typeof context.language !== 'string' || context.language.length > 16 || !languagePattern.test(context.language)))
-    fail(400, 'INVALID_REQUEST', 'Request fields are invalid.', 'invalid_context', eventName);
+function validateDimensions(event, eventName) {
+  if (!['desktop', 'mobile', 'tablet'].includes(event.deviceClass))
+    fail(400, 'INVALID_REQUEST', 'Request fields are invalid.', 'invalid_device_class', eventName);
+  if (typeof event.language !== 'string' || event.language.length > 16 || !languagePattern.test(event.language))
+    fail(400, 'INVALID_REQUEST', 'Request fields are invalid.', 'invalid_language', eventName);
 }
 
 function validateProperties(eventName, properties) {
@@ -83,7 +79,7 @@ export function parseAnalyticsEvent(rawBody, now = new Date()) {
     fail(400, 'INVALID_REQUEST', 'Request fields are invalid.', 'invalid_common_fields', body.eventName);
 
   const occurredAt = parseUtcTimestamp(body.occurredAt, now, body.eventName);
-  validateContext(body.context, body.eventName);
+  validateDimensions(body, body.eventName);
   validateProperties(body.eventName, body.properties);
   return { ...body, occurredAt };
 }

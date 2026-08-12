@@ -2,11 +2,8 @@ import { app } from '@azure/functions';
 import { AnalyticsRequestError, parseAnalyticsEvent } from '../analytics/eventValidation.js';
 import { insertAnalyticsEvent } from '../analytics/postgresEventStore.js';
 
-function corsHeaders(origin, allowedOrigin) {
-  const headers = { Vary: 'Origin', 'Access-Control-Allow-Methods': 'POST,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' };
-  if (origin && origin === allowedOrigin)
-    headers['Access-Control-Allow-Origin'] = origin;
-  return headers;
+function corsHeaders() {
+  return { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' };
 }
 
 function jsonError(status, code, message, headers) {
@@ -23,11 +20,10 @@ function logOutcome(context, status, eventName, startedAt, category, getTime) {
     context.info(message);
 }
 
-export function createEventsHandler({ insertEvent = insertAnalyticsEvent, getCurrentDate = () => new Date(), getTime = Date.now, allowedOrigin = process.env.NEON_VOID_ALLOWED_ORIGIN } = {}) {
+export function createEventsHandler({ insertEvent = insertAnalyticsEvent, getCurrentDate = () => new Date(), getTime = Date.now } = {}) {
   return async function events(request, context) {
     const startedAt = getTime();
-    const origin = request.headers.get('origin');
-    const headers = corsHeaders(origin, allowedOrigin);
+    const headers = corsHeaders();
 
     if (request.method === 'OPTIONS') {
       logOutcome(context, 204, 'unknown', startedAt, undefined, getTime);

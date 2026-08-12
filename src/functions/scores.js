@@ -9,12 +9,8 @@ const maximumScore = 999999;
 let scoreTableClient;
 let localTableReady;
 
-function getCorsHeaders(request) {
-  const origin = request.headers.get('origin');
-  const headers = { Vary: 'Origin', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' };
-  if (origin && origin === process.env.NEON_VOID_ALLOWED_ORIGIN)
-    headers['Access-Control-Allow-Origin'] = origin;
-  return headers;
+function getCorsHeaders() {
+  return { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' };
 }
 
 function getScoreTableClient() {
@@ -59,7 +55,7 @@ function jsonResponse(status, jsonBody, headers) {
 }
 
 export async function submitScore(request, context) {
-  const headers = getCorsHeaders(request);
+  const headers = getCorsHeaders();
   if (request.method === 'OPTIONS')
     return { status: 204, headers };
 
@@ -90,7 +86,7 @@ export async function submitScore(request, context) {
 
 export async function getLeaders(request, context) {
   const leaders = [];
-  const headers = getCorsHeaders(request);
+  const headers = getCorsHeaders();
 
   try {
     const tableClient = await getReadyScoreTableClient();

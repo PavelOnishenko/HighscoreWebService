@@ -13,7 +13,7 @@ Azure Functions endpoints for the existing Table Storage leaderboard and Neon Vo
    ```
 2. Copy `local.settings.example.json` to `local.settings.json`.
 3. Create a local PostgreSQL database and apply `database/setup_analytics.sql`.
-4. Set `ANALYTICS_DATABASE_URL` and `NEON_VOID_ALLOWED_ORIGIN` in `local.settings.json`.
+4. Set `ANALYTICS_DATABASE_URL` in `local.settings.json`.
 5. Start Azurite and the API together; the local `scores` table is created automatically:
    ```bash
    npm start
@@ -41,10 +41,9 @@ Set these Function App settings without committing their values:
 
 - `SCORES_STORAGE_ACCOUNT`
 - `ANALYTICS_DATABASE_URL` with `sslmode=require`
-- `NEON_VOID_ALLOWED_ORIGIN` with the exact Neon Void website origin
 - `FUNCTIONS_NODE_BLOCK_ON_ENTRY_POINT_ERROR=true`
 
-Enable Application Insights, HTTPS Only, and Azure Function CORS for the same exact origin. The function logs only status, accepted event name, duration, and a short error category through the invocation context. CORS prevents unapproved browser origins from reading responses; it is not authentication and custom callers can spoof an origin. Then publish with:
+Enable Application Insights and HTTPS Only. The HTTP handlers return `Access-Control-Allow-Origin: *`, so do not configure an Azure Function origin allowlist that overrides those headers. The function logs only status, accepted event name, duration, and a short error category through the invocation context. Then publish with:
 
 ```bash
 func azure functionapp publish <FUNCTION_APP_NAME>

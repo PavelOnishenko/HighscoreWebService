@@ -7,8 +7,8 @@ CREATE TABLE IF NOT EXISTS analytics_events (
     run_id uuid NOT NULL,
     game_version varchar(32) NOT NULL,
     platform varchar(16) NOT NULL,
-    device_class varchar(16) NULL,
-    language varchar(16) NULL,
+    device_class varchar(16) NOT NULL,
+    language varchar(16) NOT NULL,
     properties jsonb NOT NULL DEFAULT '{}'::jsonb
 );
 

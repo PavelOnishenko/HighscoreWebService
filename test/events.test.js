@@ -4,19 +4,19 @@ import { createEventsHandler } from '../src/functions/events.js';
 import { submitScore } from '../src/functions/scores.js';
 import { insertAnalyticsEvent, insertAnalyticsEventSql } from '../src/analytics/postgresEventStore.js';
 
-const allowedOrigin = 'https://game.example';
+const browserOrigin = 'https://game.example';
 const now = new Date('2026-08-04T12:00:00.000Z');
 
 function validEvent(overrides = {}) {
   return {
     eventName: 'custom_launch_metric', occurredAt: '2026-08-04T11:59:00.000Z', sessionId: '92b62a2f-b4c9-4a38-9fdc-7b45c9ac4515',
     runId: '47fd990c-9ee6-457f-9ff2-0ae9b536e8b4', gameVersion: '1.4.0', platform: 'crazygames',
-    context: { deviceClass: 'desktop', language: 'en' },
+    deviceClass: 'desktop', language: 'en',
     properties: { anyName: 'any value', nested: { count: -12.5 }, flags: [true, null] }, ...overrides
   };
 }
 
-function request(body, { method = 'POST', origin = allowedOrigin, contentType = 'application/json', rawBody } = {}) {
+function request(body, { method = 'POST', origin = browserOrigin, contentType = 'application/json', rawBody } = {}) {
   const headers = new Headers();
   if (origin)
     headers.set('origin', origin);
@@ -31,14 +31,14 @@ function context() {
 }
 
 function handler(insertEvent = async () => {}) {
-  return createEventsHandler({ insertEvent, allowedOrigin, getCurrentDate: () => now, getTime: () => now.getTime() });
+  return createEventsHandler({ insertEvent, getCurrentDate: () => now, getTime: () => now.getTime() });
 }
 
 test('accepts and inserts arbitrary event names and JSON properties', async () => {
   let inserted;
   const response = await handler(event => { inserted = event; })(request(validEvent()), context());
   assert.equal(response.status, 204);
-  assert.equal(response.headers['Access-Control-Allow-Origin'], allowedOrigin);
+  assert.equal(response.headers['Access-Control-Allow-Origin'], '*');
   assert.equal(inserted.eventName, 'custom_launch_metric');
   assert.deepEqual(inserted.properties, validEvent().properties);
 });
@@ -64,10 +64,6 @@ test('rejects unknown envelope fields but accepts arbitrary property names', asy
     const response = await handler()(request({ ...validEvent(), email: 'private@example.com' }), context());
     assert.equal(response.status, 400);
   });
-  await t.test('unknown context field is 400', async () => {
-    const response = await handler()(request(validEvent({ context: { ...validEvent().context, userAgent: 'private' } })), context());
-    assert.equal(response.status, 400);
-  });
   await t.test('arbitrary property name is accepted', async () => {
     const response = await handler()(request(validEvent({ properties: { completelyNewParameter: { unrestricted: true } } })), context());
     assert.equal(response.status, 204);
@@ -83,7 +79,10 @@ test('rejects invalid envelope values and non-object properties', async t => {
     ['missing run UUID', { runId: undefined }, 400],
     ['old timestamp', { occurredAt: '2026-08-03T11:59:59.999Z' }, 400],
     ['future timestamp', { occurredAt: '2026-08-04T12:05:00.001Z' }, 400],
-    ['language longer than database column', { context: { ...validEvent().context, language: 'abc-12345678-12345678' } }, 400],
+    ['missing device class', { deviceClass: undefined }, 400],
+    ['invalid device class', { deviceClass: 'console' }, 400],
+    ['missing language', { language: undefined }, 400],
+    ['language longer than database column', { language: 'abc-12345678-12345678' }, 400],
     ['array properties', { properties: [] }, 400],
     ['null properties', { properties: null }, 400]
   ];
@@ -113,31 +112,24 @@ test('uses a fixed parameterized insert statement', async () => {
   assert.doesNotMatch(query.text, /DROP TABLE/);
   assert.equal(query.values[4], maliciousVersion);
   assert.equal(query.values.length, 9);
+  assert.equal(query.values[6], validEvent().deviceClass);
+  assert.equal(query.values[7], validEvent().language);
   assert.equal(query.values[8], JSON.stringify(validEvent().properties));
 });
 
-test('allows only the configured browser origin', async () => {
-  const allowed = await handler()(request(null, { method: 'OPTIONS', contentType: null }), context());
-  assert.equal(allowed.status, 204);
-  assert.equal(allowed.headers['Access-Control-Allow-Origin'], allowedOrigin);
+test('allows browser requests from any origin', async () => {
+  const first = await handler()(request(null, { method: 'OPTIONS', contentType: null }), context());
+  assert.equal(first.status, 204);
+  assert.equal(first.headers['Access-Control-Allow-Origin'], '*');
 
-  const denied = await handler()(request(null, { method: 'OPTIONS', origin: 'https://other.example', contentType: null }), context());
-  assert.equal(denied.status, 204);
-  assert.equal(denied.headers['Access-Control-Allow-Origin'], undefined);
+  const second = await handler()(request(null, { method: 'OPTIONS', origin: 'https://other.example', contentType: null }), context());
+  assert.equal(second.status, 204);
+  assert.equal(second.headers['Access-Control-Allow-Origin'], '*');
 });
 
-test('uses the same exact-origin CORS policy for the existing leaderboard', async () => {
-  const previousOrigin = process.env.NEON_VOID_ALLOWED_ORIGIN;
-  process.env.NEON_VOID_ALLOWED_ORIGIN = allowedOrigin;
-  try {
-    const allowed = await submitScore(request(null, { method: 'OPTIONS', contentType: null }), context());
-    const denied = await submitScore(request(null, { method: 'OPTIONS', origin: 'https://other.example', contentType: null }), context());
-    assert.equal(allowed.headers['Access-Control-Allow-Origin'], allowedOrigin);
-    assert.equal(denied.headers['Access-Control-Allow-Origin'], undefined);
-  } finally {
-    if (previousOrigin === undefined)
-      delete process.env.NEON_VOID_ALLOWED_ORIGIN;
-    else
-      process.env.NEON_VOID_ALLOWED_ORIGIN = previousOrigin;
-  }
+test('allows leaderboard requests from any origin', async () => {
+  const first = await submitScore(request(null, { method: 'OPTIONS', contentType: null }), context());
+  const second = await submitScore(request(null, { method: 'OPTIONS', origin: 'https://other.example', contentType: null }), context());
+  assert.equal(first.headers['Access-Control-Allow-Origin'], '*');
+  assert.equal(second.headers['Access-Control-Allow-Origin'], '*');
 });

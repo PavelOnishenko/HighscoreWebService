@@ -21,7 +21,7 @@ function getAnalyticsPool() {
 export async function insertAnalyticsEvent(event, database = getAnalyticsPool()) {
   const values = [
     event.eventName, event.occurredAt, event.sessionId, event.runId, event.gameVersion, event.platform,
-    event.context.deviceClass ?? null, event.context.language ?? null, JSON.stringify(event.properties)
+    event.deviceClass, event.language, JSON.stringify(event.properties)
   ];
   await database.query(insertAnalyticsEventSql, values);
 }
