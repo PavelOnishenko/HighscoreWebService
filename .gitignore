@@ -142,3 +142,7 @@ vite.config.ts.timestamp-*
 data.db
 data.db-shm
 data.db-wal
+
+# Azure Functions local secrets
+local.settings.json
+.azurite/

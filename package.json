@@ -2,12 +2,23 @@
   "name": "highscore-web-service",
   "version": "1.0.0",
   "type": "module",
-  "main": "server.js",
+  "main": "src/functions/*.js",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
-    "start": "node server.js"
+    "start": "concurrently --kill-others \"npm:storage\" \"func start\"",
+    "storage": "azurite --silent --location .azurite",
+    "test": "node --test"
   },
   "dependencies": {
-    "better-sqlite3": "^9.4.4",
-    "express": "^4.19.2"
+    "@azure/data-tables": "^13.3.2",
+    "@azure/functions": "^4.16.2",
+    "@azure/identity": "^4.13.1",
+    "pg": "^8.22.0"
+  },
+  "devDependencies": {
+    "azurite": "^3.35.0",
+    "concurrently": "^9.2.1"
   }
 }
