@@ -3,7 +3,7 @@
 Azure Functions endpoints for the existing Table Storage leaderboard and Neon Void analytics:
 
 - `POST /api/submit` and `GET /api/leaders`: leaderboard.
-- `POST /api/events`: strictly validated anonymous analytics stored in Azure Database for PostgreSQL.
+- `POST /api/events`: anonymous analytics with arbitrary event names and JSON properties stored in Azure Database for PostgreSQL.
 
 ## Local setup
 
@@ -29,7 +29,7 @@ Azure Functions endpoints for the existing Table Storage leaderboard and Neon Vo
    curl http://localhost:7071/api/leaders
    ```
 
-Run `npm test` for the analytics validation, safe logging, CORS, database-failure, and SQL parameterization tests. The fixed event contract is documented in `docs/analytics_events.md`.
+Run `npm test` for the generic analytics envelope, arbitrary JSON properties, safe logging, CORS, database-failure, and SQL parameterization tests. The request contract is documented in `docs/analytics_events.md`.
 
 ## Azure configuration
 

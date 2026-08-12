@@ -5,8 +5,8 @@ let analyticsPool;
 
 export const insertAnalyticsEventSql = `
   INSERT INTO analytics_events (
-    event_name, occurred_at, session_id, run_id, game_version, platform, device_class, language, is_muted, properties
-  ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)
+    event_name, occurred_at, session_id, run_id, game_version, platform, device_class, language, properties
+  ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
 `;
 
 function getAnalyticsPool() {
@@ -21,7 +21,7 @@ function getAnalyticsPool() {
 export async function insertAnalyticsEvent(event, database = getAnalyticsPool()) {
   const values = [
     event.eventName, event.occurredAt, event.sessionId, event.runId, event.gameVersion, event.platform,
-    event.context.deviceClass ?? null, event.context.language ?? null, event.context.isMuted ?? null, JSON.stringify(event.properties)
+    event.context.deviceClass ?? null, event.context.language ?? null, JSON.stringify(event.properties)
   ];
   await database.query(insertAnalyticsEventSql, values);
 }
