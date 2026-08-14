@@ -7,6 +7,10 @@ Azure Functions endpoints for the existing Table Storage leaderboard and Neon Vo
 
 ## Local setup
 
+For an end-to-end analytics-only check with Docker PostgreSQL, the local Azure
+Functions runtime, and a database query, follow the [local analytics
+pre-deployment test](docs/local_analytics_testing.md).
+
 1. Install dependencies and Azure Functions Core Tools:
    ```bash
    npm install
@@ -33,6 +37,10 @@ Run `npm test` for the generic analytics envelope, arbitrary JSON properties, sa
 
 ## Azure configuration
 
+Follow the detailed [Azure deployment runbook](docs/azure_deployment.md) for a
+fresh deployment, an existing-app update, database setup, permissions, publishing,
+and live verification.
+
 Create the existing `scores` Table Storage table. Create an Azure Database for PostgreSQL database and apply `database/setup_analytics.sql` with a deployment/admin role. Give the runtime database role only the permissions it needs to connect, use the schema/sequence, and insert into `analytics_events`.
 
 For a runtime role named `analytics_writer`, grant `CONNECT` on the database, `USAGE` on schema `public`, `INSERT` on `analytics_events`, and `USAGE, SELECT` on sequence `analytics_events_id_seq`. Do not grant table update or delete permissions.
@@ -40,7 +48,7 @@ For a runtime role named `analytics_writer`, grant `CONNECT` on the database, `U
 Set these Function App settings without committing their values:
 
 - `SCORES_STORAGE_ACCOUNT`
-- `ANALYTICS_DATABASE_URL` with `sslmode=require`
+- `ANALYTICS_DATABASE_URL` with `sslmode=verify-full`
 - `FUNCTIONS_NODE_BLOCK_ON_ENTRY_POINT_ERROR=true`
 
 Enable Application Insights and HTTPS Only. The HTTP handlers return `Access-Control-Allow-Origin: *`, so do not configure an Azure Function origin allowlist that overrides those headers. The function logs only status, accepted event name, duration, and a short error category through the invocation context. Then publish with:
