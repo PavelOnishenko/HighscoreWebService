@@ -62,7 +62,7 @@ stored. This does not replace the live Azure smoke test in section 10.
 List Flex Consumption regions that support Node.js:
 
 ```powershell
-az functionapp list-flexconsumption-locations --runtime node --output table
+az functionapp list-flexconsumption-locations --show-details true --runtime node --output table
 ```
 
 Set deployment variables. Storage account names accept only 3-24 lowercase
@@ -70,7 +70,7 @@ letters and digits.
 
 ```powershell
 $resourceGroup = "neon-void-prod"
-$location = "westeurope"
+$location = "Austria East"
 $functionAppName = "<GLOBALLY_UNIQUE_FUNCTION_APP_NAME>"
 $storageAccountName = "<GLOBALLYUNIQUESTORAGE>"
 $postgresServerName = "<GLOBALLY-UNIQUE-POSTGRES-SERVER>"
@@ -136,6 +136,16 @@ Role assignments can take several minutes to become effective.
 
 ## 6. Create PostgreSQL
 
+Register the PostgreSQL resource provider once per subscription and wait for it
+to finish:
+
+```powershell
+az provider register --namespace Microsoft.DBforPostgreSQL --wait
+az provider show --namespace Microsoft.DBforPostgreSQL --query registrationState --output tsv
+```
+
+The second command must print `Registered`.
+
 This first deployment uses PostgreSQL public networking. Your current public IP
 is allowed for setup, and Azure services are allowed so the dynamically scaled
 Function App can connect. The `0.0.0.0` Azure-services rule is broader than this
@@ -159,11 +169,28 @@ az postgres flexible-server firewall-rule create --resource-group $resourceGroup
   --name AllowAzureServices --start-ip-address 0.0.0.0 --end-ip-address 0.0.0.0
 ```
 
+Download the root certificates currently required by Azure PostgreSQL and create
+the PEM bundle used by `psql`:
+
+```powershell
+$postgresCertificateDirectory = Join-Path $env:APPDATA "postgresql"
+$digicertRoot = Join-Path $postgresCertificateDirectory "DigiCertGlobalRootG2.crt.pem"
+$microsoftRootDer = Join-Path $postgresCertificateDirectory "MicrosoftRSARootCA2017.crt"
+$microsoftRootPem = Join-Path $postgresCertificateDirectory "MicrosoftRSARootCA2017.crt.pem"
+$postgresRootBundle = Join-Path $postgresCertificateDirectory "azure-postgresql-roots.pem"
+New-Item -ItemType Directory -Force -Path $postgresCertificateDirectory | Out-Null
+Invoke-WebRequest "https://cacerts.digicert.com/DigiCertGlobalRootG2.crt.pem" -OutFile $digicertRoot
+Invoke-WebRequest "https://www.microsoft.com/pkiops/certs/Microsoft%20RSA%20Root%20Certificate%20Authority%202017.crt" -OutFile $microsoftRootDer
+certutil.exe -f -encode $microsoftRootDer $microsoftRootPem
+Get-Content $digicertRoot,$microsoftRootPem | Set-Content $postgresRootBundle -Encoding ascii
+$postgresRootBundleForPsql = $postgresRootBundle.Replace('\','/')
+```
+
 Define the admin connection used only during setup:
 
 ```powershell
 $postgresHost = "$postgresServerName.postgres.database.azure.com"
-$adminConnection = "host=$postgresHost port=5432 dbname=$databaseName user=$postgresAdmin sslmode=verify-full"
+$adminConnection = "host=$postgresHost port=5432 dbname=$databaseName user=$postgresAdmin sslmode=verify-full sslrootcert='$postgresRootBundleForPsql'"
 $env:PGPASSWORD = $postgresAdminPassword
 ```
 
