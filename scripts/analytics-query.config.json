@@ -1,0 +1,12 @@
+{
+    "server":  "neonvoid-analytics-385f3d1f.postgres.database.azure.com",
+    "database":  "neon_void_analytics",
+    "user":  "nvadmin",
+    "port":  5432,
+    "rootCertificate":  "%APPDATA%\\postgresql\\azure-postgresql-roots.pem",
+    "psqlPath":  "K:\\Program Files\\PostgresClientTools\\bin\\psql.exe",
+    "azureResourceGroup":  "HighscoreBackend",
+    "azurePostgresServer":  "neonvoid-analytics-385f3d1f",
+    "firewallRuleName":  "LocalAnalyticsQuery",
+    "publicIpEndpoint":  "https://api.ipify.org"
+}
